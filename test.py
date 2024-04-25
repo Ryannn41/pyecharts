@@ -1,65 +1,55 @@
 import json
-from pyecharts.charts import Line
-from pyecharts.options import TitleOpts, LabelOpts
+from pyecharts.charts import Map
+from pyecharts.options import *
 
-# 处理数据
-f_us = open("C:/Python-learning/data/美国.txt", "r", encoding="utf-8")
-us_data = f_us.read()  # 美国的全部内容
+f = open("C:/Python-learning/pythonProject1/疫情.txt", "r", encoding="utf-8")
 
-f_jp = open("C:/Python-learning/data/日本.txt", "r", encoding="utf-8")
-jp_data = f_jp.read()  # 日本的全部内容
+data = f.read()
 
-f_in = open("C:/Python-learning/data/印度.txt", "r", encoding="utf-8")
-in_data = f_in.read()  # 印度的全部内容
+f.close()
 
-# 去掉不合JSON规范的开头
-us_data = us_data.replace("jsonp_1629344292311_69436(", "")
-jp_data = jp_data.replace("jsonp_1629350871167_29498(", "")
-in_data = in_data.replace("jsonp_1629350745930_63180(", "")
+data_dict = json.loads(data)
 
-# 去掉不合JSON规范的结尾
-us_data = us_data[:-2]
-jp_data = jp_data[:-2]
-in_data = in_data[:-2]
+province_data_list = data_dict["areaTree"][0]["children"]
 
-# JSON转Python字典
-us_dict = json.loads(us_data)
-jp_dict = json.loads(jp_data)
-in_dict = json.loads(in_data)
+data_list = []
+for province_data in province_data_list:
+    province_name = province_data["name"]
+    province_confirm = province_data["total"]["confirm"]
+    if province_name == "北京" or province_name == "天津" or province_name == "上海" or province_name == "重庆":
+        data_list.append((province_name + "市", province_confirm))
+    elif province_name == "西藏" or province_name == "内蒙古":
+        data_list.append((province_name + "自治区", province_confirm))
+    elif province_name == "香港" or province_name == "澳门":
+        data_list.append((province_name + "特别行政区", province_confirm))
+    elif province_name == "新疆":
+        data_list.append((province_name + "维吾尔自治区", province_confirm))
+    elif province_name == "宁夏":
+        data_list.append((province_name + "回族自治区", province_confirm))
+    elif province_name == "广西":
+        data_list.append((province_name + "壮族自治区", province_confirm))
+    else:
+        data_list.append((province_name + "省", province_confirm))
+# print(data_list)
 
-# 获取trend key
-us_trend_data = us_dict['data'][0]['trend']
-jp_trend_data = jp_dict['data'][0]['trend']
-in_trend_data = in_dict['data'][0]['trend']
+map = Map()
 
-# 获取日期数据，用于x轴，取2020年（到314下标结束）
-us_x_data = us_trend_data['updateDate'][:314]
-jp_x_data = jp_trend_data['updateDate'][:314]
-in_x_data = in_trend_data['updateDate'][:314]
+map.add("各省份确诊人数", data_list, "china")
 
-# 获取确认数据，用于y轴，取2020年（到314下标结束）
-us_y_data = us_trend_data['list'][0]['data'][:314]
-jp_y_data = jp_trend_data['list'][0]['data'][:314]
-in_y_data = in_trend_data['list'][0]['data'][:314]
-
-# 生成图表
-line = Line()  # 构建折线图对象
-# 添加x轴数据
-line.add_xaxis(us_x_data)  # x轴是公用的，所以用us的就可以
-# 添加y轴数据
-line.add_yaxis("美国确诊人数", us_y_data, label_opts=LabelOpts(is_show=False))
-line.add_yaxis("日本确诊人数", jp_y_data, label_opts=LabelOpts(is_show=False))
-line.add_yaxis("印度确诊人数", in_y_data, label_opts=LabelOpts(is_show=False))
-
-# 设置全局选项
-line.set_global_opts(
-    title_opts=TitleOpts(title="2020年美日印三国确诊人数对比折线图", pos_left="center", pos_bottom="1%")
+map.set_global_opts(
+    title_opts=TitleOpts(title="全国疫情地图"),
+    visualmap_opts=VisualMapOpts(
+        is_show=True,
+        is_piecewise=True,
+        pieces=[
+            {"min": 1, "max": 99, "label": "1-99人", "color": "#CCFFFF"},
+            {"min": 100, "max": 999, "label": "100-999人", "color": "#FFFF99"},
+            {"min": 1000, "max": 4999, "label": "1000-4999人", "color": "#FF9966"},
+            {"min": 5000, "max": 9999, "label": "5000-9999人", "color": "#FF6666"},
+            {"min": 10000, "max": 99999, "label": "10000-99999人", "color": "#CC3333"},
+            {"min": 100000, "label": "100000+", "color": "#990033"},
+        ]
+    )
 )
 
-# 渲染图表
-line.render()
-
-# 关闭文件对象
-f_us.close()
-f_jp.close()
-f_in.close()
+map.render("全国疫情地图.html")
